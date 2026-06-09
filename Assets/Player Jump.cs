@@ -5,50 +5,103 @@ using UnityEngine;
 public class PlayerJump : MonoBehaviour
 {
     [SerializeField] private Rigidbody2D rigidBody;
-
     [SerializeField] private SpriteRenderer spriteRenderer;
+    [SerializeField] private Animator animator;
 
-    [SerializeField] private float jumpforce = 6;
+    [SerializeField] private float jumpforce = 6f;
     [SerializeField] private float doubleJumpforce = 6f;
 
-    private bool isGrounded;
-
     private float playerHalfHeight;
-    
     private bool canDoubleJump;
 
-    // Update is called once per frame
     private void Start()
     {
         playerHalfHeight = spriteRenderer.bounds.extents.y;
+
+        if (animator == null)
+            animator = GetComponent<Animator>();
     }
-    void Update()
+
+    private void Update()
     {
-         
-        if (Input.GetButtonDown("Jump") && GetIsGrounded()){
+        bool grounded = GetIsGrounded();
+
+        // Jump pertama
+        if (Input.GetButtonDown("Jump") && grounded)
+        {
             Jump(jumpforce);
         }
-        else if (Input.GetButtonDown("Jump") && !GetIsGrounded() && canDoubleJump){
-            rigidBody.velocity = Vector2.zero;
-            rigidBody.angularVelocity = 0;
+
+        // Double Jump
+        else if (Input.GetButtonDown("Jump") &&
+                 !grounded &&
+                 canDoubleJump)
+        {
+            rigidBody.velocity =
+                new Vector2(rigidBody.velocity.x, 0);
+
             Jump(doubleJumpforce);
+
             canDoubleJump = false;
         }
-    }
 
-    private void onCollisionEnter2D(Collision2D other)
-    {
-        GetIsGrounded();
-    }
+        // Animasi
+        float yVel = rigidBody.velocity.y;
 
-    private bool GetIsGrounded(){
-        bool hit = Physics2D.Raycast(transform.position, Vector2.down, playerHalfHeight + 0.1f, LayerMask.GetMask("Ground"));
-        if (hit){
-            canDoubleJump = true;
+        if (grounded)
+        {
+            animator.SetBool("isJumping", false);
+            animator.SetBool("isFalling", false);
         }
-        return hit;
+        else if (yVel > 0.2f)
+        {
+            animator.SetBool("isJumping", true);
+            animator.SetBool("isFalling", false);
+        }
+        else if (yVel < -0.8f)
+        {
+            animator.SetBool("isJumping", false);
+            animator.SetBool("isFalling", true);
+        }
     }
-    private void Jump(float force){
-        rigidBody.AddForce(Vector2.up * force, ForceMode2D.Impulse);
+
+    private bool GetIsGrounded()
+    {
+        RaycastHit2D hit = Physics2D.Raycast(
+            transform.position,
+            Vector2.down,
+            playerHalfHeight + 0.3f, // diperpanjang
+            LayerMask.GetMask("Ground")
+        );
+
+        if (hit.collider != null)
+        {
+            canDoubleJump = true;
+            return true;
+        }
+
+        return false;
+    }
+
+    private void Jump(float force)
+    {
+        rigidBody.AddForce(
+            Vector2.up * force,
+            ForceMode2D.Impulse
+        );
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        if (spriteRenderer == null)
+            return;
+
+        Gizmos.color = Color.red;
+
+        Gizmos.DrawLine(
+            transform.position,
+            transform.position +
+            Vector3.down * (spriteRenderer.bounds.extents.y + 0.3f)
+        );
     }
 }
