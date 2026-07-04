@@ -1,93 +1,142 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class EnemyMovement : MonoBehaviour
 {
-    [SerializeField] private Rigidbody2D rigidBody;
-    [SerializeField] private SpriteRenderer spriteRenderer;
-    // [SerializeField] private Animator animator;
-    [SerializeField] private float speed = 3f;
-    [SerializeField] private int startDirection = 1;
-    [SerializeField] private bool stayOnLedges = true;
+    [Header("Pengaturan Patroli (Batas Gerak)")]
+    public Transform leftBoundary;
+    public Transform rightBoundary;
+    public float moveSpeed = 2f;
+    private bool MovingRight = true;
 
-    private int currentDirection;
-    private float halfWidht;
-    private float halfHeight;
-    private Vector2 movement;
-    private bool isGrounded;
+    [Header("Pengaturan Serangan")]
+    public Transform player;
+    public float chaseRange = 5f;
+    public float attackRange = 1.5f;
+    public float attackCooldown = 1.5f;
+    private float nextAttackTime = 0f;
 
-    // Start is called before the first frame update
+    private Rigidbody2D rb;
+    private Animator anim;
+    private Vector3 initScale;
+    private EnemySFX enemySFX; // ← TAMBAHAN
+
     void Start()
     {
-       halfWidht = spriteRenderer.bounds.extents.x;
-       halfHeight = spriteRenderer.bounds.extents.y;
-       currentDirection = startDirection; 
-       spriteRenderer.flipX = startDirection == 1 ? false : true;
-    }
+        rb = GetComponent<Rigidbody2D>();
+        anim = GetComponent<Animator>();
+        initScale = transform.localScale;
+        enemySFX = GetComponent<EnemySFX>(); // ← TAMBAHAN
 
-    // Update is called once per frame
-    void FixedUpdate()
-    {
-        movement.x = speed * currentDirection;
-        movement.y = rigidBody.velocity.y;
-        rigidBody.velocity = movement;
-        setDirection();
-    }
-
-    // PERBAIKAN: Huruf 'O' besar
-    private void OnCollisionStay2D(Collision2D other)
-    {
-        if (other.gameObject.CompareTag("Ground")){
-            isGrounded = true;
-        }
-        else{
-            isGrounded = false;
-        }
-    }
-
-    // PERBAIKAN: Diubah menjadi Exit agar tidak duplikat dengan fungsi di atasnya
-    private void OnCollisionExit2D(Collision2D other)
-    {
-        isGrounded = false;
-    }
-
-    private void setDirection()
-    {
-        if (!isGrounded) return;
-
-        Vector2 rightPos = transform.position;
-        Vector2 leftPos = transform.position;
-        rightPos.x += halfWidht;
-        leftPos.x -= halfWidht;
-
-        if (rigidBody.velocity.x > 0 )
+        if (player == null)
         {
-            if (Physics2D.Raycast(transform.position, Vector2.right, halfWidht + 0.1f, LayerMask.GetMask("Ground")))
+            GameObject p = GameObject.FindGameObjectWithTag("Player");
+            if (p != null) player = p.transform;
+        }
+    }
+
+    void Update()
+    {
+        if (player == null) return;
+
+        float distanceToPlayer = Vector2.Distance(transform.position, player.position);
+
+        if (distanceToPlayer <= attackRange)
+        {
+            rb.velocity = new Vector2(0, rb.velocity.y);
+            if (anim != null) anim.SetBool("Moving", false);
+
+            if (Time.time >= nextAttackTime)
             {
-                currentDirection *= -1;
-                spriteRenderer.flipX = true;
+                if (anim != null) anim.SetTrigger("Attack");
+                nextAttackTime = Time.time + attackCooldown;
             }
-            // PERBAIKAN: 0,1f menjadi 0.1f dan hapus titik dua (:) sebelum LayerMask
-            else if (stayOnLedges && !Physics2D.Raycast(rightPos, Vector2.down, halfHeight + 0.1f, LayerMask.GetMask("Ground")))
-            {
-                currentDirection *= -1;
-                spriteRenderer.flipX = true;
-            }    
         }
-        else if (rigidBody.velocity.x < 0)
+        else if (distanceToPlayer <= chaseRange)
         {
-            if (Physics2D.Raycast(transform.position, Vector2.left, halfWidht + 0.1f, LayerMask.GetMask("Ground")))
-            {
-                currentDirection *= -1;
-                spriteRenderer.flipX = false;
-             }
-             // PERBAIKAN: 0,1f menjadi 0.1f dan hapus titik dua (:) sebelum LayerMask
-             else if (stayOnLedges && !Physics2D.Raycast(leftPos, Vector2.down, halfHeight + 0.1f, LayerMask.GetMask("Ground")))
-             {
-                currentDirection *= -1;
-                spriteRenderer.flipX = false;
-             } 
+            ChasePlayer();
         }
+        else
+        {
+            Patrol();
+        }
+    }
+
+    void Patrol()
+    {
+        if (leftBoundary == null || rightBoundary == null)
+        {
+            Debug.LogError("[Enemy] leftBoundary atau rightBoundary NULL!");
+            return;
+        }
+
+        if (anim != null) anim.SetBool("Moving", true);
+
+        if (MovingRight)
+        {
+            rb.velocity = new Vector2(moveSpeed, rb.velocity.y);
+            transform.localScale = new Vector3(Mathf.Abs(initScale.x), initScale.y, initScale.z);
+
+            if (transform.position.x >= rightBoundary.position.x)
+                MovingRight = false;
+        }
+        else
+        {
+            rb.velocity = new Vector2(-moveSpeed, rb.velocity.y);
+            transform.localScale = new Vector3(-Mathf.Abs(initScale.x), initScale.y, initScale.z);
+
+            if (transform.position.x <= leftBoundary.position.x)
+                MovingRight = true;
+        }
+    }
+
+    void ChasePlayer()
+    {
+        if (anim != null) anim.SetBool("Moving", true);
+
+        if (player.position.x > transform.position.x)
+        {
+            rb.velocity = new Vector2(moveSpeed, rb.velocity.y);
+            transform.localScale = new Vector3(Mathf.Abs(initScale.x), initScale.y, initScale.z);
+            MovingRight = true;
+        }
+        else
+        {
+            rb.velocity = new Vector2(-moveSpeed, rb.velocity.y);
+            transform.localScale = new Vector3(-Mathf.Abs(initScale.x), initScale.y, initScale.z);
+            MovingRight = false;
+        }
+    }
+
+    public void DamagePlayer()
+    {
+        if (player == null) return;
+
+        float distanceToPlayer = Vector2.Distance(transform.position, player.position);
+
+        if (distanceToPlayer <= attackRange)
+        {
+            PlayerHealth playerHealth = player.GetComponent<PlayerHealth>();
+            if (playerHealth == null) return;
+
+            float dirX = player.position.x >= transform.position.x ? 1f : -1f;
+            Vector2 knockback = new Vector2(dirX * 3f, 5f);
+
+            playerHealth.TakeDamage(1, knockback);
+            Debug.Log("Player terkena tebasan musuh.");
+        }
+    }
+
+    // Dipanggil via Animation Event di clip Attack ← TAMBAHAN
+    public void PlayAttackSFX()
+    {
+        if (enemySFX != null) enemySFX.PlayAttack();
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, chaseRange);
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, attackRange);
     }
 }

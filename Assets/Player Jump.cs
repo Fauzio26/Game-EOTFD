@@ -14,38 +14,61 @@ public class PlayerJump : MonoBehaviour
     private float playerHalfHeight;
     private bool canDoubleJump;
 
-    private void Start()
-    {
-        playerHalfHeight = spriteRenderer.bounds.extents.y;
+    // Referensi ke PlayerHealth untuk blokir jump saat knockback
+    private PlayerHealth playerHealth;
+    private PlayerSFX playerSFX; // ← TAMBAHAN
+    private bool wasGrounded = true; // ← TAMBAHAN — track status grounded frame sebelumnya
 
-        if (animator == null)
-            animator = GetComponent<Animator>();
+private void Start()
+{
+    playerHalfHeight = spriteRenderer.bounds.extents.y;
+
+    if (animator == null)
+        animator = GetComponent<Animator>();
+
+    playerHealth = GetComponent<PlayerHealth>();
+    playerSFX = GetComponent<PlayerSFX>();
+}
+
+private void Update()
+{
+    bool grounded = GetIsGrounded();
+
+    if (playerHealth != null && playerHealth.IsKnockedBack)
+    {
+        UpdateAnimations(grounded);
+        return;
     }
 
-    private void Update()
+    // Deteksi landing — baru menyentuh ground setelah di udara
+    if (grounded && !wasGrounded)
     {
-        bool grounded = GetIsGrounded();
+        if (playerSFX != null) playerSFX.PlayLanding(); // ← TAMBAHAN
+    }
 
-        // Jump pertama
-        if (Input.GetButtonDown("Jump") && grounded)
-        {
-            Jump(jumpforce);
-        }
+    // Jump pertama
+    if (Input.GetButtonDown("Jump") && grounded)
+    {
+        Jump(jumpforce);
+        if (playerSFX != null) playerSFX.PlayJump();
+    }
+    // Double Jump
+    else if (Input.GetButtonDown("Jump") && !grounded && canDoubleJump)
+    {
+        rigidBody.velocity = new Vector2(rigidBody.velocity.x, 0);
+        Jump(doubleJumpforce);
+        canDoubleJump = false;
+        if (playerSFX != null) playerSFX.PlayDoubleJump();
+    }
 
-        // Double Jump
-        else if (Input.GetButtonDown("Jump") &&
-                 !grounded &&
-                 canDoubleJump)
-        {
-            rigidBody.velocity =
-                new Vector2(rigidBody.velocity.x, 0);
+    UpdateAnimations(grounded);
 
-            Jump(doubleJumpforce);
+    wasGrounded = grounded; // ← TAMBAHAN — simpan status grounded frame ini
+}
 
-            canDoubleJump = false;
-        }
-
-        // Animasi
+    // Dipisah ke fungsi sendiri agar tetap jalan saat knockback
+    private void UpdateAnimations(bool grounded)
+    {
         float yVel = rigidBody.velocity.y;
 
         if (grounded)
@@ -89,23 +112,17 @@ public class PlayerJump : MonoBehaviour
 
     private void Jump(float force)
     {
-        rigidBody.AddForce(
-            Vector2.up * force,
-            ForceMode2D.Impulse
-        );
+        rigidBody.AddForce(Vector2.up * force, ForceMode2D.Impulse);
     }
 
     private void OnDrawGizmosSelected()
     {
-        if (spriteRenderer == null)
-            return;
+        if (spriteRenderer == null) return;
 
         Gizmos.color = Color.red;
-
         Gizmos.DrawLine(
             transform.position,
-            transform.position +
-            Vector3.down * (spriteRenderer.bounds.extents.y + 0.05f) // Gizmos disesuaikan dengan raycast baru
+            transform.position + Vector3.down * (spriteRenderer.bounds.extents.y + 0.05f) // Gizmos disesuaikan dengan raycast baru
         );
     }
 }
