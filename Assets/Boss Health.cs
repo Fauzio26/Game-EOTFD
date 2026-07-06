@@ -7,8 +7,9 @@ public class BossHealth : MonoBehaviour
     [SerializeField] private float startingHealth = 200f;
     private float currentHealth;
 
-    [Header("Health Bar")]
-    [SerializeField] private Slider healthBarSlider;
+    [Header("UI Floating Health Bar")]
+    // Referensi ke skrip floating health bar yang baru dibuat 
+    [SerializeField] private FloatingHealthBar floatingHealthBar;
 
     private Animator anim;
     private bool isDead = false;
@@ -24,13 +25,17 @@ public class BossHealth : MonoBehaviour
         currentHealth = startingHealth;
         bossSFX = GetComponent<BossSFX>();
         bossMovement = GetComponent<BossMovement>();
+    }
 
-        if (healthBarSlider != null)
+        private void Start()
+    {
+        // Beri tahu nilai darah penuh saat game dimulai
+        if (floatingHealthBar != null)
         {
-            healthBarSlider.maxValue = startingHealth;
-            healthBarSlider.value    = startingHealth;
+            floatingHealthBar.UpdateHealthBar(currentHealth, startingHealth);
         }
     }
+
 
     public void TakeDamage(float _damage)
     {
@@ -38,8 +43,11 @@ public class BossHealth : MonoBehaviour
 
         currentHealth = Mathf.Clamp(currentHealth - _damage, 0, startingHealth);
 
-        if (healthBarSlider != null)
-            healthBarSlider.value = currentHealth;
+        // Setiap kali boss terluka, perbarui slidernya
+        if (floatingHealthBar != null)
+        {
+            floatingHealthBar.UpdateHealthBar(currentHealth, startingHealth);
+        }
 
         if (currentHealth > 0)
         {
@@ -60,10 +68,7 @@ public class BossHealth : MonoBehaviour
         isDead = true;
 
         if (anim != null) anim.SetTrigger("Dead");
-        if (bossSFX != null) bossSFX.PlayDeath(); // ← TAMBAHAN
-
-        if (healthBarSlider != null)
-            healthBarSlider.gameObject.SetActive(false);
+        if (bossSFX != null) bossSFX.PlayDeath();
 
         foreach (Behaviour component in componentsToDisable)
         {
@@ -78,6 +83,12 @@ public class BossHealth : MonoBehaviour
         {
             rb.velocity = Vector2.zero;
             rb.isKinematic = true;
+        }
+
+        // Sembunyikan health bar saat Boss hancur/mati
+        if (floatingHealthBar != null)
+        {
+            floatingHealthBar.gameObject.SetActive(false);
         }
     }
 
