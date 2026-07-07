@@ -6,7 +6,7 @@ AnimationClip:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: HeroKnight_Block
+  m_Name: HeroKnight_Parry
   serializedVersion: 7
   m_Legacy: 0
   m_Compressed: 0
@@ -21,12 +21,14 @@ AnimationClip:
   - serializedVersion: 2
     curve:
     - time: 0
-      value: {fileID: 21300142, guid: ae297123f091bbf4e8f1835eb98fb293, type: 3}
+      value: {fileID: 21300140, guid: ae297123f091bbf4e8f1835eb98fb293, type: 3}
     - time: 0.083333336
-      value: {fileID: 21300144, guid: ae297123f091bbf4e8f1835eb98fb293, type: 3}
+      value: {fileID: 21300142, guid: ae297123f091bbf4e8f1835eb98fb293, type: 3}
     - time: 0.16666667
-      value: {fileID: 21300146, guid: ae297123f091bbf4e8f1835eb98fb293, type: 3}
+      value: {fileID: 21300144, guid: ae297123f091bbf4e8f1835eb98fb293, type: 3}
     - time: 0.25
+      value: {fileID: 21300146, guid: ae297123f091bbf4e8f1835eb98fb293, type: 3}
+    - time: 0.33333334
       value: {fileID: 21300148, guid: ae297123f091bbf4e8f1835eb98fb293, type: 3}
     attribute: m_Sprite
     path: 
@@ -50,6 +52,7 @@ AnimationClip:
       isIntCurve: 0
       isSerializeReferenceCurve: 0
     pptrCurveMapping:
+    - {fileID: 21300140, guid: ae297123f091bbf4e8f1835eb98fb293, type: 3}
     - {fileID: 21300142, guid: ae297123f091bbf4e8f1835eb98fb293, type: 3}
     - {fileID: 21300144, guid: ae297123f091bbf4e8f1835eb98fb293, type: 3}
     - {fileID: 21300146, guid: ae297123f091bbf4e8f1835eb98fb293, type: 3}
@@ -59,7 +62,7 @@ AnimationClip:
     m_AdditiveReferencePoseClip: {fileID: 0}
     m_AdditiveReferencePoseTime: 0
     m_StartTime: 0
-    m_StopTime: 0.26666668
+    m_StopTime: 0.35000002
     m_OrientationOffsetY: 0
     m_Level: 0
     m_CycleOffset: 0

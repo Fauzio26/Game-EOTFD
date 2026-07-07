@@ -20,8 +20,8 @@ public class PlayerMovement : MonoBehaviour
     private float playerHalfwidth;
     private float xPostLastFrame;
 
-    // Referensi ke PlayerHealth untuk blokir movement saat knockback
     private PlayerHealth playerHealth;
+    private PlayerBlock playerBlock; // ← TAMBAHAN
 
     private void Start()
     {
@@ -29,17 +29,29 @@ public class PlayerMovement : MonoBehaviour
             new Vector2(Screen.width, Screen.height));
 
         playerHalfwidth = spriteRenderer.bounds.extents.x;
-        playerHealth = GetComponent<PlayerHealth>();
+        playerHealth    = GetComponent<PlayerHealth>();
+        playerBlock     = GetComponent<PlayerBlock>(); // ← TAMBAHAN
     }
 
     private void Update()
     {
-        // Blokir semua input saat kena knockback
         if (playerHealth != null && playerHealth.IsKnockedBack)
             return;
 
+        // ── TAMBAHAN: blokir movement saat blocking ──
+        if (playerBlock != null && playerBlock.IsBlocking)
+        {
+            // Hentikan movement, tapi tetap bisa flip arah
+            FlipCharacterX();
+
+            // Hentikan animasi run
+            if (animator != null)
+                animator.SetBool("isRunning", false);
+
+            return;
+        }
+
         Handlemovement();
-        // ClampMovement();
         FlipCharacterX();
         HandleAttack();
     }
@@ -57,7 +69,6 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    // Dipanggil melalui Animation Event pada clip animasi menyerang
     public void BerikanDamageKeMusuh()
     {
         if (titikSerangkanan == null || titikSerangkiri == null)
@@ -66,7 +77,6 @@ public class PlayerMovement : MonoBehaviour
             return;
         }
 
-        // Jika sprite di-flipX berarti menghadap kiri, gunakan titikSerangkiri
         Transform titikAktif = spriteRenderer.flipX ? titikSerangkiri : titikSerangkanan;
 
         Collider2D[] musuhTerkena = Physics2D.OverlapCircleAll(titikAktif.position, radiusSerang, layerMusuh);
@@ -75,14 +85,11 @@ public class PlayerMovement : MonoBehaviour
         {
             EnemyHealth enemyHealth = colMusuh.GetComponent<EnemyHealth>();
             if (enemyHealth != null)
-            {
                 enemyHealth.TakeDamage(damageSerang);
-            }
+
             BossHealth bossHealth = colMusuh.GetComponent<BossHealth>();
             if (bossHealth != null)
-            {
                 bossHealth.TakeDamage(damageSerang);
-            }
         }
     }
 
@@ -107,11 +114,9 @@ public class PlayerMovement : MonoBehaviour
 
         if (animator == null) return;
 
-        // Ambil status animasi dari PlayerJump.cs
         bool isJumping = animator.GetBool("isJumping");
         bool isFalling = animator.GetBool("isFalling");
 
-        // Run hanya saat tidak Jump dan tidak Fall
         if (input != 0 && !isJumping && !isFalling)
             animator.SetBool("isRunning", true);
         else
@@ -130,7 +135,6 @@ public class PlayerMovement : MonoBehaviour
         transform.position = pos;
     }
 
-    // Menggambar lingkaran di Scene view untuk memantau jangkauan serangan
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.blue;

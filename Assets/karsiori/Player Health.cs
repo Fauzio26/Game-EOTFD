@@ -30,19 +30,25 @@ public class PlayerHealth : MonoBehaviour
     private SpriteRenderer sr;
     private Animator animator;
     private PlayerSFX playerSFX;
+    private PlayerBlock playerBlock; // ← TAMBAHAN
 
     private void Awake()
     {
-        rb        = GetComponent<Rigidbody2D>();
-        sr        = GetComponent<SpriteRenderer>();
-        animator  = GetComponent<Animator>();
-        playerSFX = GetComponent<PlayerSFX>();
-        CurrentHP = maxHP;
+        rb          = GetComponent<Rigidbody2D>();
+        sr          = GetComponent<SpriteRenderer>();
+        animator    = GetComponent<Animator>();
+        playerSFX   = GetComponent<PlayerSFX>();
+        playerBlock = GetComponent<PlayerBlock>(); // ← TAMBAHAN
+        CurrentHP   = maxHP;
     }
 
     public void TakeDamage(int damage, Vector2 knockbackForce)
     {
         if (IsInvincible) return;
+
+        // ── TAMBAHAN: cek block/parry ──
+        if (playerBlock != null && playerBlock.TryParry())
+            return; // damage diblock, tidak ada efek apapun
 
         CurrentHP = Mathf.Max(CurrentHP - damage, 0);
         Debug.Log($"[PlayerHealth] HP: {CurrentHP}/{maxHP}");
@@ -74,6 +80,7 @@ public class PlayerHealth : MonoBehaviour
         if (animator != null)
         {
             animator.ResetTrigger("isDead");
+            animator.SetBool("isBlocking", false); // ← TAMBAHAN
             animator.SetBool("isRunning", false);
             animator.SetBool("isJumping", false);
             animator.SetBool("isFalling", false);
@@ -123,17 +130,15 @@ public class PlayerHealth : MonoBehaviour
     {
         Debug.Log("[PlayerHealth] Player mati!");
 
-        // Blokir semua input
         IsKnockedBack = true;
         IsInvincible  = true;
 
-        // Play sound death
         if (playerSFX != null) playerSFX.PlayDeath();
 
-        // Trigger animasi mati
         if (animator != null)
         {
             animator.ResetTrigger("Attack");
+            animator.SetBool("isBlocking", false); // ← TAMBAHAN
             animator.SetBool("isRunning", false);
             animator.SetBool("isJumping", false);
             animator.SetBool("isFalling", false);
@@ -149,7 +154,7 @@ public class PlayerHealth : MonoBehaviour
         yield return new WaitForSeconds(0.3f);
 
         rb.velocity = Vector2.zero;
-        rb.constraints = RigidbodyConstraints2D.FreezeRotation;
+        rb.constraints = RigidbodyConstraints2D.FreezeAll;
 
         yield return new WaitForSeconds(deathDelay - 0.3f);
 

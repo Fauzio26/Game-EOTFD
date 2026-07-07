@@ -8,7 +8,6 @@ public class BossHealth : MonoBehaviour
     private float currentHealth;
 
     [Header("UI Floating Health Bar")]
-    // Referensi ke skrip floating health bar yang baru dibuat 
     [SerializeField] private FloatingHealthBar floatingHealthBar;
 
     private Animator anim;
@@ -27,15 +26,13 @@ public class BossHealth : MonoBehaviour
         bossMovement = GetComponent<BossMovement>();
     }
 
-        private void Start()
+    private void Start()
     {
-        // Beri tahu nilai darah penuh saat game dimulai
         if (floatingHealthBar != null)
         {
             floatingHealthBar.UpdateHealthBar(currentHealth, startingHealth);
         }
     }
-
 
     public void TakeDamage(float _damage)
     {
@@ -43,7 +40,6 @@ public class BossHealth : MonoBehaviour
 
         currentHealth = Mathf.Clamp(currentHealth - _damage, 0, startingHealth);
 
-        // Setiap kali boss terluka, perbarui slidernya
         if (floatingHealthBar != null)
         {
             floatingHealthBar.UpdateHealthBar(currentHealth, startingHealth);
@@ -85,10 +81,21 @@ public class BossHealth : MonoBehaviour
             rb.isKinematic = true;
         }
 
-        // Sembunyikan health bar saat Boss hancur/mati
         if (floatingHealthBar != null)
         {
             floatingHealthBar.gameObject.SetActive(false);
+        }
+
+        // PERBAIKAN: Panggil fungsi "The End" setelah 2 detik agar animasi Boss mati selesai diputar
+        Invoke("TriggerTheEndScreen", 2f);
+    }
+
+    // FUNGSI BARU: Memanggil GameManager untuk memunculkan layar tamat
+    private void TriggerTheEndScreen()
+    {
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.ShowTheEnd();
         }
     }
 

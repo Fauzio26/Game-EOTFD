@@ -35,4 +35,6 @@ public class CheckpointTrigger : MonoBehaviour
         if (flagSprite == null) return;
         flagSprite.color = isActive ? activatedColor : defaultColor;
     }
+
+    
 }
