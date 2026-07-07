@@ -12,9 +12,9 @@ public class BossMusicTrigger : MonoBehaviour
             hasTriggered = true; // Tandai bahwa lagu sudah diganti
             
             // Memanggil fungsi ganti musik di AudioManager
-            if (AudioManager.instance != null)
+            if (AudioManager.Instance != null)
             {
-                AudioManager.instance.ChangeToBossMusic();
+                AudioManager.Instance.ChangeToBossMusic();
             }
         }
     }

@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI; 
 
 public class GameManager : MonoBehaviour
 {
@@ -41,21 +42,99 @@ public class GameManager : MonoBehaviour
 
         LastCheckpointScene    = SceneManager.GetActiveScene().name;
         LastCheckpointPosition = Vector3.zero;
+
+        SceneManager.sceneLoaded += HandleSceneLoaded;
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+            SceneManager.sceneLoaded -= HandleSceneLoaded;
+    }
+
+    private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        playerObject = GameObject.FindGameObjectWithTag("Player");
+
+        if (scene.name != "SampleScene") return;
+
+        // CARI PANEL DAN HUBUNGKAN TOMBOLNYA SECARA OTOMATIS
+        GameObject foundGameOver = CariUIPanel("GameOverPanel");
+        if (foundGameOver != null) 
+        {
+            gameOverPanel = foundGameOver;
+            HubungkanTombolOtomatis(gameOverPanel);
+        }
+
+        GameObject foundTheEnd = CariUIPanel("TheEndPanel");
+        if (foundTheEnd != null) 
+        {
+            theEndPanel = foundTheEnd;
+            HubungkanTombolOtomatis(theEndPanel);
+        }
+
+        GameObject foundPaused = CariUIPanel("PausedPanel");
+        if (foundPaused != null) 
+        {
+            pausePanel = foundPaused;
+            HubungkanTombolOtomatis(pausePanel);
+        }
+
+        if (gameOverPanel != null) gameOverPanel.SetActive(false);
+        if (theEndPanel != null) theEndPanel.SetActive(false);
+        if (pausePanel != null) pausePanel.SetActive(false);
+
+        if (LastCheckpointScene != "SampleScene")
+        {
+            GameObject spawn = GameObject.Find("InitialSpawnPoint");
+            if (spawn != null)
+            {
+                LastCheckpointScene    = "SampleScene";
+                LastCheckpointPosition = spawn.transform.position;
+            }
+            else if (checkpoint1 != null)
+            {
+                LastCheckpointScene    = "SampleScene";
+                LastCheckpointPosition = checkpoint1.position;
+            }
+        }
+    }
+
+    // =========================================================
+    // FUNGSI PENGHUBUNG TOMBOL AGAR TIDAK ERROR (PUTUS)
+    // =========================================================
+    private void HubungkanTombolOtomatis(GameObject panel)
+    {
+        if (panel == null) return;
+
+        Button[] semuaTombol = panel.GetComponentsInChildren<Button>(true);
+        
+        foreach (Button btn in semuaTombol)
+        {
+            string namaTombol = btn.gameObject.name.ToLower();
+
+            // 1. Hapus sambungan OnClick lama dari Inspector
+            btn.onClick.RemoveAllListeners();
+
+            // 2. Hubungkan ulang kodenya berdasarkan nama tombolnya
+            if (namaTombol.Contains("try") || namaTombol.Contains("restart") || namaTombol.Contains("again"))
+            {
+                btn.onClick.AddListener(RestartGame);
+            }
+            else if (namaTombol.Contains("main") || namaTombol.Contains("menu"))
+            {
+                btn.onClick.AddListener(LoadMainMenu);
+            }
+            else if (namaTombol.Contains("resume") || namaTombol.Contains("continue") || namaTombol.Contains("back"))
+            {
+                btn.onClick.AddListener(ResumeGame);
+            }
+        }
     }
 
     private void Start()
     {
-        playerObject = GameObject.FindGameObjectWithTag("Player");
-        Debug.Log($"[GameManager] Player ditemukan: {playerObject}");
-
-        if (checkpoint1 != null)
-        {
-            LastCheckpointPosition = checkpoint1.position;
-        }
-
-        if (gameOverPanel != null) gameOverPanel.SetActive(false);
-        if (theEndPanel != null) theEndPanel.SetActive(false); 
-        if (pausePanel != null) pausePanel.SetActive(false); 
+        HandleSceneLoaded(SceneManager.GetActiveScene(), LoadSceneMode.Single);
     }
 
     private void Update()
@@ -67,14 +146,8 @@ public class GameManager : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.Escape))
         {
-            if (isPaused)
-            {
-                ResumeGame();
-            }
-            else
-            {
-                PauseGame();
-            }
+            if (isPaused) ResumeGame();
+            else PauseGame();
         }
     }
 
@@ -117,7 +190,6 @@ public class GameManager : MonoBehaviour
 
         if (playerObject != null)
         {
-            // Panggil fungsi perbaikan urutan posisi & aktif
             ResetPlayerPhysicsAndPosition(LastCheckpointPosition);
 
             PlayerHealth ph = playerObject.GetComponent<PlayerHealth>();
@@ -143,16 +215,38 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    public void RestartGame()
+public void RestartGame()
     {
         Time.timeScale = 1f; 
         currentRespawns = 0; 
         isPaused = false; 
 
-        if (checkpoint1 != null)
+        // --- MODIFIKASI: KEMBALI KE CHECKPOINT AWAL ---
+        // Cari posisi spawn awal ("InitialSpawnPoint") yang ada di scene saat ini.
+        // Ini perlu karena GameManager persist dari MainMenu (DontDestroyOnLoad).
+        Vector3 titikRestart = Vector3.zero;
+        GameObject spawnAwal = GameObject.Find("InitialSpawnPoint");
+
+        if (spawnAwal != null)
         {
-            LastCheckpointPosition = checkpoint1.position;
+            titikRestart = spawnAwal.transform.position;
         }
+        else if (checkpoint1 != null)
+        {
+            // Fallback kalau InitialSpawnPoint tidak ada, tapi checkpoint1 ter-assign
+            titikRestart = checkpoint1.position;
+        }
+        else
+        {
+            // Fallback terakhir kalau keduanya tidak ada (mencegah error)
+            titikRestart = LastCheckpointPosition;
+            Debug.LogWarning("[GameManager] InitialSpawnPoint / checkpoint1 tidak ditemukan saat Restart!");
+        }
+
+        // Reset LastCheckpointPosition ke titik awal, supaya kalau pemain mati lagi,
+        // dia tetap respawn di awal, bukan di checkpoint terakhir sebelum game over.
+        LastCheckpointPosition = titikRestart;
+        // ---------------------------------------------
 
         if (gameOverPanel != null) gameOverPanel.SetActive(false);
         if (theEndPanel != null) theEndPanel.SetActive(false); 
@@ -160,33 +254,25 @@ public class GameManager : MonoBehaviour
 
         if (playerObject != null)
         {
-            ResetPlayerPhysicsAndPosition(LastCheckpointPosition);
+            // Gunakan titikRestart yang sudah kita cari di atas
+            ResetPlayerPhysicsAndPosition(titikRestart);
 
             PlayerHealth ph = playerObject.GetComponent<PlayerHealth>();
             if (ph != null) ph.ResetHP();
         }
     }
-
-    // ====================================================================
-    // PERBAIKAN UTAMA: Mengubah urutan SetActive agar Fisika tidak bug/error
-    // ====================================================================
     private void ResetPlayerPhysicsAndPosition(Vector3 targetPosition)
     {
         Vector3 amanPosisi = new Vector3(targetPosition.x, targetPosition.y, 0f);
-
-        // 1. Pindahkan posisi transform dasarnya dulu
         playerObject.transform.position = amanPosisi;
-
-        // 2. AKTIFKAN OBJEK TERLEBIH DAHULU agar komponen fisika bangun dari tidur
         playerObject.SetActive(true);
 
-        // 3. Baru setelah aktif, kita bersihkan gaya gravitasi & kecepatan lamanya
         Rigidbody2D rb = playerObject.GetComponent<Rigidbody2D>();
         if (rb != null)
         {
-            rb.velocity = Vector2.zero; 
+            rb.linearVelocity = Vector2.zero; 
             rb.angularVelocity = 0f;
-            rb.position = amanPosisi; // Paksa posisi sinkron dengan physics map global
+            rb.position = amanPosisi; 
         }
     }
 
@@ -194,11 +280,17 @@ public class GameManager : MonoBehaviour
     {
         Time.timeScale = 1f; 
         isPaused = false; 
+        currentRespawns = 0; 
+
+        LastCheckpointScene    = "MainMenu";
+        LastCheckpointPosition = Vector3.zero;
+
         SceneManager.LoadScene("MainMenu"); 
     }
 
     private void OnGUI()
     {
+        if (SceneManager.GetActiveScene().name != "SampleScene") return;
         if (theEndPanel != null && theEndPanel.activeSelf) return;
         if (pausePanel != null && pausePanel.activeSelf) return; 
 
@@ -216,5 +308,23 @@ public class GameManager : MonoBehaviour
 
         int sisaKesempatan = maxRespawns - currentRespawns;
         GUI.Label(new Rect(xPos, yPos, width, height), "Respawn: " + sisaKesempatan, gayaTeks);
+    }
+
+    private GameObject CariUIPanel(string namaPanel)
+    {
+        Scene sceneAktif = SceneManager.GetActiveScene();
+        if (!sceneAktif.isLoaded) return null;
+
+        GameObject[] rootObjects = sceneAktif.GetRootGameObjects();
+
+        foreach (GameObject root in rootObjects)
+        {
+            Transform[] semuaAnak = root.GetComponentsInChildren<Transform>(true);
+            foreach (Transform anak in semuaAnak)
+            {
+                if (anak.name == namaPanel) return anak.gameObject;
+            }
+        }
+        return null;
     }
 }

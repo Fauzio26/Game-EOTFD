@@ -55,7 +55,7 @@ private void Update()
     // Double Jump
     else if (Input.GetButtonDown("Jump") && !grounded && canDoubleJump)
     {
-        rigidBody.velocity = new Vector2(rigidBody.velocity.x, 0);
+        rigidBody.linearVelocity = new Vector2(rigidBody.linearVelocity.x, 0);
         Jump(doubleJumpforce);
         canDoubleJump = false;
         if (playerSFX != null) playerSFX.PlayDoubleJump();
@@ -69,7 +69,7 @@ private void Update()
     // Dipisah ke fungsi sendiri agar tetap jalan saat knockback
     private void UpdateAnimations(bool grounded)
     {
-        float yVel = rigidBody.velocity.y;
+        float yVel = rigidBody.linearVelocity.y;
 
         if (grounded)
         {

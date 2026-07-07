@@ -55,7 +55,7 @@ public class PlayerHealth : MonoBehaviour
 
         if (playerSFX != null) playerSFX.PlayHit();
 
-        rb.velocity = new Vector2(rb.velocity.x, 0f);
+        rb.linearVelocity = new Vector2(rb.linearVelocity.x, 0f);
         rb.AddForce(knockbackForce, ForceMode2D.Impulse);
 
         if (CurrentHP <= 0)
@@ -90,8 +90,12 @@ public class PlayerHealth : MonoBehaviour
 
     public void InstantKill()
     {
-        if (IsInvincible) return;
-
+        // FIX: guard "if (IsInvincible) return;" DIHAPUS.
+        // Killzone (jurang/duri instan-death) harus tetap membunuh player
+        // walau player sedang dalam invincibility window bekas kena hit musuh
+        // (misalnya knockback mendorong player masuk ke killzone).
+        // Beda kasus dengan TakeDamage() dari musuh yang memang harus
+        // diblok saat invincible.
         CurrentHP = 0;
         Debug.Log("[PlayerHealth] Player jatuh ke lubang!");
         StopAllCoroutines();
@@ -153,7 +157,7 @@ public class PlayerHealth : MonoBehaviour
     {
         yield return new WaitForSeconds(0.3f);
 
-        rb.velocity = Vector2.zero;
+        rb.linearVelocity = Vector2.zero;
         rb.constraints = RigidbodyConstraints2D.FreezeAll;
 
         yield return new WaitForSeconds(deathDelay - 0.3f);

@@ -47,7 +47,7 @@ public class BossMovement : MonoBehaviour
 
         if (distanceToPlayer <= attackRange)
         {
-            rb.velocity = new Vector2(0, rb.velocity.y);
+            rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
             if (anim != null) anim.SetBool("Moving", false);
 
             if (Time.time >= nextAttackTime)
@@ -78,7 +78,7 @@ public class BossMovement : MonoBehaviour
 
         if (MovingRight)
         {
-            rb.velocity = new Vector2(moveSpeed, rb.velocity.y);
+            rb.linearVelocity = new Vector2(moveSpeed, rb.linearVelocity.y);
             transform.localScale = new Vector3(Mathf.Abs(initScale.x), initScale.y, initScale.z);
 
             if (transform.position.x >= rightBoundary.position.x)
@@ -86,7 +86,7 @@ public class BossMovement : MonoBehaviour
         }
         else
         {
-            rb.velocity = new Vector2(-moveSpeed, rb.velocity.y);
+            rb.linearVelocity = new Vector2(-moveSpeed, rb.linearVelocity.y);
             transform.localScale = new Vector3(-Mathf.Abs(initScale.x), initScale.y, initScale.z);
 
             if (transform.position.x <= leftBoundary.position.x)
@@ -100,13 +100,13 @@ public class BossMovement : MonoBehaviour
 
         if (player.position.x > transform.position.x)
         {
-            rb.velocity = new Vector2(moveSpeed, rb.velocity.y);
+            rb.linearVelocity = new Vector2(moveSpeed, rb.linearVelocity.y);
             transform.localScale = new Vector3(Mathf.Abs(initScale.x), initScale.y, initScale.z);
             MovingRight = true;
         }
         else
         {
-            rb.velocity = new Vector2(-moveSpeed, rb.velocity.y);
+            rb.linearVelocity = new Vector2(-moveSpeed, rb.linearVelocity.y);
             transform.localScale = new Vector3(-Mathf.Abs(initScale.x), initScale.y, initScale.z);
             MovingRight = false;
         }
